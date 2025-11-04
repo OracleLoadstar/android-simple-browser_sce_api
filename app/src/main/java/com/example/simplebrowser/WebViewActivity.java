@@ -27,7 +27,9 @@ public class WebViewActivity extends AppCompatActivity {
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         );
-        getWindow().setDecorFitsSystemWindows(false);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            getWindow().setDecorFitsSystemWindows(false);
+        }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
             android.view.WindowManager.LayoutParams lp = getWindow().getAttributes();
             lp.layoutInDisplayCutoutMode =
