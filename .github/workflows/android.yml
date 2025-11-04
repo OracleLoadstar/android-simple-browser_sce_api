@@ -20,8 +20,10 @@ jobs:
           java-version: '17'
 
       # 已集成chromium内核，无需编译，跳过此步骤
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
+      - name: 安装Gradle Wrapper
+        run: |
+          gradle wrapper --gradle-version 8.2
+          chmod +x ./gradlew
 
       - name: 安装chromium webview依赖（系统已集成，默认即为chromium内核）
         run: echo "Android WebView 默认基于Chromium，无需额外配置"
