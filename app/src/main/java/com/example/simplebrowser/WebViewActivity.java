@@ -75,8 +75,8 @@ public class WebViewActivity extends AppCompatActivity {
         webView.getSettings().setBuiltInZoomControls(true);
         webView.getSettings().setDisplayZoomControls(false);
         
-        // 强制设置默认缩放比例为远离状态，让页面以完整宽度显示
-        webView.setInitialScale(50);  // 设置为50%以便能看到完整的1920px宽度内容
+        // 强制设置默认缩放比例，提供更好的可读性
+        webView.setInitialScale(75);  // 设置为75%，在可读性和桌面布局之间取得平衡
         
         // 自定义WebViewClient来注入JavaScript
         webView.setWebViewClient(new WebViewClient() {
