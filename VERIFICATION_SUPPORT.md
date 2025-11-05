@@ -78,7 +78,6 @@ CookieManager.setAcceptThirdPartyCookies(webView, true)
 
 // 缓存和存储
 setCacheMode(LOAD_DEFAULT)
-setAppCacheEnabled(true)
 setDatabaseEnabled(true)
 setDomStorageEnabled(true)
 

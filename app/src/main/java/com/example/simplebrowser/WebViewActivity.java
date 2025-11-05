@@ -108,8 +108,6 @@ public class WebViewActivity extends AppCompatActivity {
         
         // 启用缓存 - 帮助加载CAPTCHA资源
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        settings.setAppCacheEnabled(true);
-        settings.setAppCachePath(getApplicationContext().getCacheDir().getAbsolutePath());
         
         // 启用数据库存储 - 某些验证机制需要
         settings.setDatabaseEnabled(true);
