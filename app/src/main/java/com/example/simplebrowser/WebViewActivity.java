@@ -22,13 +22,21 @@ public class WebViewActivity extends AppCompatActivity {
         
         WebView webView = new WebView(this);
         webView.setWebViewClient(new WebViewClient());
-        webView.getSettings().setJavaScriptEnabled(true);
         
-        // 始终启用桌面版模式
-        String desktopUserAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+        // 强制启用桌面版模式 - 使用Windows Chrome User-Agent以获得更好的兼容性
+        String desktopUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
         webView.getSettings().setUserAgentString(desktopUserAgent);
+        
+        // 启用所有必要的WebView设置
+        webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setUseWideViewPort(true);
         webView.getSettings().setLoadWithOverviewMode(true);
+        webView.getSettings().setSupportZoom(true);
+        webView.getSettings().setBuiltInZoomControls(true);
+        webView.getSettings().setDisplayZoomControls(false);
+        
+        // 设置初始缩放
+        webView.setInitialScale(1);
         
         if (url != null && !url.isEmpty()) {
             webView.loadUrl(url);
