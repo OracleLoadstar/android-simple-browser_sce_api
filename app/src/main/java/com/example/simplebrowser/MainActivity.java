@@ -8,7 +8,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -20,7 +19,6 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
     private EditText urlEdit;
-    private CheckBox desktopModeCheckbox;
     private Button shortcutBtn;
     private ExecutorService executorService;
     private Handler mainHandler;
@@ -34,9 +32,6 @@ public class MainActivity extends AppCompatActivity {
         urlEdit = new EditText(this);
         urlEdit.setHint("输入网址");
         
-        desktopModeCheckbox = new CheckBox(this);
-        desktopModeCheckbox.setText("桌面版模式");
-        
         shortcutBtn = new Button(this);
         shortcutBtn.setText("生成快捷方式");
 
@@ -48,7 +43,8 @@ public class MainActivity extends AppCompatActivity {
                     url = "https://" + url;
                 }
                 
-                boolean desktopMode = desktopModeCheckbox.isChecked();
+                // 默认使用桌面版模式
+                boolean desktopMode = true;
                 String finalUrl = url;
                 
                 // 显示进度提示
@@ -68,10 +64,6 @@ public class MainActivity extends AppCompatActivity {
         
         layout.addView(urlEdit, new android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT));
-        
-        layout.addView(desktopModeCheckbox, new android.widget.LinearLayout.LayoutParams(
-                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT));
         
         layout.addView(shortcutBtn, new android.widget.LinearLayout.LayoutParams(

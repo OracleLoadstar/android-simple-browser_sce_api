@@ -11,10 +11,11 @@ public class WebViewActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         String url = getIntent().getStringExtra("url");
-        boolean desktopMode = getIntent().getBooleanExtra("desktopMode", false);
+        // 默认启用桌面版模式
+        boolean desktopMode = getIntent().getBooleanExtra("desktopMode", true);
         
         // 如果extras中没有desktopMode，尝试从Intent data URI中读取
-        if (!desktopMode && getIntent().getData() != null) {
+        if (getIntent().getData() != null) {
             android.net.Uri data = getIntent().getData();
             String uriString = data.toString();
             
