@@ -2,12 +2,15 @@ package com.example.simplebrowser;
 
 import android.os.Bundle;
 import android.view.View;
+import android.view.KeyEvent;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebChromeClient;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class WebViewActivity extends AppCompatActivity {
+    
+    private WebView webView;
     
     private String getDesktopSpoofScript() {
         return 
@@ -41,6 +44,9 @@ public class WebViewActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        webView = new WebView(this);
+        
         String url = getIntent().getStringExtra("url");
         
         // 如果从Intent data URI中获取URL
@@ -50,8 +56,6 @@ public class WebViewActivity extends AppCompatActivity {
             // 移除可能的fragment标记
             url = uriString.split("#")[0];
         }
-        
-        final WebView webView = new WebView(this);
         
         // 强制启用桌面版模式 - 使用Windows Chrome User-Agent以获得更好的兼容性
         String desktopUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -103,9 +107,13 @@ public class WebViewActivity extends AppCompatActivity {
             }
         });
         
-        if (url != null && !url.isEmpty()) {
+        // 恢复保存的状态（如果有）
+        if (savedInstanceState != null) {
+            webView.restoreState(savedInstanceState);
+        } else if (url != null && !url.isEmpty()) {
             webView.loadUrl(url);
         }
+        
         setContentView(webView);
 
         // 全屏设置，忽略刘海屏
@@ -124,6 +132,32 @@ public class WebViewActivity extends AppCompatActivity {
             lp.layoutInDisplayCutoutMode =
                     android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
             getWindow().setAttributes(lp);
+        }
+    }
+    
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        // 保存WebView状态
+        webView.saveState(outState);
+    }
+    
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // 处理返回键：如果WebView可以后退，则后退，否则关闭Activity
+        if (keyCode == KeyEvent.KEYCODE_BACK && webView.canGoBack()) {
+            webView.goBack();
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // 清理WebView资源
+        if (webView != null) {
+            webView.destroy();
         }
     }
 }
