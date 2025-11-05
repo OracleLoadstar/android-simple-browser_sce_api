@@ -24,6 +24,16 @@ public class WebViewActivity extends AppCompatActivity {
             "    Object.defineProperty(navigator, 'maxTouchPoints', {get: function() { return 0; }, configurable: true});" +
             "    Object.defineProperty(navigator, 'platform', {get: function() { return 'Win32'; }, configurable: true});" +
             "    if ('ontouchstart' in window) { delete window.ontouchstart; }" +
+            // 修改viewport meta标签
+            "    var viewport = document.querySelector('meta[name=viewport]');" +
+            "    if (viewport) {" +
+            "      viewport.setAttribute('content', 'width=1920, initial-scale=1.0');" +
+            "    } else {" +
+            "      var meta = document.createElement('meta');" +
+            "      meta.name = 'viewport';" +
+            "      meta.content = 'width=1920, initial-scale=1.0';" +
+            "      document.getElementsByTagName('head')[0].appendChild(meta);" +
+            "    }" +
             "  } catch(e) {}" +
             "})();";
     }
@@ -52,12 +62,17 @@ public class WebViewActivity extends AppCompatActivity {
         webView.getSettings().setDomStorageEnabled(true);
         webView.getSettings().setUseWideViewPort(true);
         webView.getSettings().setLoadWithOverviewMode(true);
+        
+        // 设置布局算法以更好地处理桌面网页
+        webView.getSettings().setLayoutAlgorithm(android.webkit.WebSettings.LayoutAlgorithm.NORMAL);
+        
+        // 缩放设置
         webView.getSettings().setSupportZoom(true);
         webView.getSettings().setBuiltInZoomControls(true);
         webView.getSettings().setDisplayZoomControls(false);
         
-        // 设置初始缩放
-        webView.setInitialScale(1);
+        // 强制设置默认缩放比例为远离状态，让页面以完整宽度显示
+        webView.setInitialScale(50);  // 设置为50%以便能看到完整的1920px宽度内容
         
         // 自定义WebViewClient来注入JavaScript
         webView.setWebViewClient(new WebViewClient() {
