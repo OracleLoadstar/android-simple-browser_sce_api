@@ -115,6 +115,8 @@ public class WebViewActivity extends AppCompatActivity {
         settings.setDatabaseEnabled(true);
         
         // 允许混合内容 - 某些CAPTCHA可能从HTTP加载资源
+        // 注意：这会降低安全性，但某些CAPTCHA服务需要此设置
+        // 如需更高安全性，可改为MIXED_CONTENT_COMPATIBILITY_MODE
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
@@ -170,6 +172,8 @@ public class WebViewActivity extends AppCompatActivity {
             }
             
             // 处理地理位置权限请求 - 某些验证使用位置信息
+            // 注意：为了支持位置验证，自动授予权限
+            // 在生产环境中，建议添加origin白名单验证
             @Override
             public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
                 // 自动授予地理位置权限以支持位置验证
@@ -177,6 +181,8 @@ public class WebViewActivity extends AppCompatActivity {
             }
             
             // 处理权限请求 - 支持相机、麦克风等（用于生物识别和passkey）
+            // 注意：为了支持WebAuthn和验证，自动授予权限
+            // 在生产环境中，建议添加origin白名单或用户确认
             @Override
             public void onPermissionRequest(PermissionRequest request) {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {

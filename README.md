@@ -75,6 +75,19 @@ The app automatically grants WebView permission requests for:
 - No data collection or transmission to third-party servers
 - All data is stored locally on the device
 
+## Security Considerations
+
+**Important Security Notes:**
+
+To support CAPTCHA and passkey functionality, this app implements the following permission policies:
+
+- **Automatic WebView Permission Granting**: The app automatically grants camera, microphone, and geolocation permissions requested by web pages
+- **Mixed Content Mode**: Allows HTTPS pages to load HTTP resources, which may reduce security
+- **Recommendations**:
+  - Only visit trusted websites
+  - For production use, consider implementing an origin whitelist mechanism
+  - Regularly review app permission usage
+
 ## License
 
 This project is open source.
