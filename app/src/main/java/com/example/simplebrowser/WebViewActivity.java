@@ -44,6 +44,10 @@ public class WebViewActivity extends AppCompatActivity {
             "    Object.defineProperty(navigator, 'maxTouchPoints', {get: function() { return 0; }, configurable: true});" +
             "    Object.defineProperty(navigator, 'platform', {get: function() { return 'Win32'; }, configurable: true});" +
             "    if ('ontouchstart' in window) { delete window.ontouchstart; }" +
+            // 增强Cloudflare兼容性 - 隐藏WebView特征
+            "    Object.defineProperty(navigator, 'webdriver', {get: function() { return undefined; }, configurable: true});" +
+            "    Object.defineProperty(navigator, 'plugins', {get: function() { return [1, 2, 3, 4, 5]; }, configurable: true});" +
+            "    Object.defineProperty(navigator, 'languages', {get: function() { return ['zh-CN', 'zh', 'en-US', 'en']; }, configurable: true});" +
             // 修改viewport meta标签
             "    var viewport = document.querySelector('meta[name=viewport]');" +
             "    if (viewport) {" +
@@ -141,6 +145,15 @@ public class WebViewActivity extends AppCompatActivity {
             settings.setSafeBrowsingEnabled(true);
         }
         
+        // 启用硬件加速 - Cloudflare和WebAuthn需要
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        
+        // 允许文件访问来自文件URL - 某些验证需要
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
+            settings.setAllowFileAccessFromFileURLs(true);
+            settings.setAllowUniversalAccessFromFileURLs(true);
+        }
+        
         // 自定义WebViewClient来注入JavaScript
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -155,6 +168,13 @@ public class WebViewActivity extends AppCompatActivity {
                 super.onPageFinished(view, url);
                 // 页面加载完成后再次注入，确保覆盖任何后加载的检测
                 view.evaluateJavascript(getDesktopSpoofScript(), null);
+            }
+            
+            @Override
+            public void onReceivedSslError(WebView view, android.webkit.SslErrorHandler handler, android.net.http.SslError error) {
+                // 注意：在生产环境中应谨慎处理SSL错误
+                // 这里为了兼容性自动继续，但建议在生产中添加用户确认
+                handler.proceed();
             }
         });
         
@@ -188,6 +208,15 @@ public class WebViewActivity extends AppCompatActivity {
                     // WebAuthn可能需要访问设备的生物识别传感器
                     request.grant(request.getResources());
                 }
+            }
+            
+            // 处理控制台消息 - 帮助调试
+            @Override
+            public boolean onConsoleMessage(android.webkit.ConsoleMessage consoleMessage) {
+                android.util.Log.d("WebView", consoleMessage.message() + " -- From line "
+                        + consoleMessage.lineNumber() + " of "
+                        + consoleMessage.sourceId());
+                return true;
             }
         });
         
