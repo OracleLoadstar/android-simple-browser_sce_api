@@ -4,9 +4,30 @@ import android.os.Bundle;
 import android.view.View;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebChromeClient;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class WebViewActivity extends AppCompatActivity {
+    
+    private String getDesktopSpoofScript() {
+        return 
+            "(function() {" +
+            "  try {" +
+            "    Object.defineProperty(window.screen, 'width', {get: function() { return 1920; }, configurable: true});" +
+            "    Object.defineProperty(window.screen, 'height', {get: function() { return 1080; }, configurable: true});" +
+            "    Object.defineProperty(window.screen, 'availWidth', {get: function() { return 1920; }, configurable: true});" +
+            "    Object.defineProperty(window.screen, 'availHeight', {get: function() { return 1080; }, configurable: true});" +
+            "    Object.defineProperty(window, 'innerWidth', {get: function() { return 1920; }, configurable: true});" +
+            "    Object.defineProperty(window, 'innerHeight', {get: function() { return 1080; }, configurable: true});" +
+            "    Object.defineProperty(window, 'outerWidth', {get: function() { return 1920; }, configurable: true});" +
+            "    Object.defineProperty(window, 'outerHeight', {get: function() { return 1080; }, configurable: true});" +
+            "    Object.defineProperty(navigator, 'maxTouchPoints', {get: function() { return 0; }, configurable: true});" +
+            "    Object.defineProperty(navigator, 'platform', {get: function() { return 'Win32'; }, configurable: true});" +
+            "    if ('ontouchstart' in window) { delete window.ontouchstart; }" +
+            "  } catch(e) {}" +
+            "})();";
+    }
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -20,34 +41,7 @@ public class WebViewActivity extends AppCompatActivity {
             url = uriString.split("#")[0];
         }
         
-        WebView webView = new WebView(this);
-        
-        // 自定义WebViewClient来注入JavaScript
-        webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
-                super.onPageStarted(view, url, favicon);
-                
-                // 注入JavaScript代码，伪造桌面环境
-                String jsCode = 
-                    "(function() {" +
-                    "  Object.defineProperty(window.screen, 'width', {get: function() { return 1920; }});" +
-                    "  Object.defineProperty(window.screen, 'height', {get: function() { return 1080; }});" +
-                    "  Object.defineProperty(window.screen, 'availWidth', {get: function() { return 1920; }});" +
-                    "  Object.defineProperty(window.screen, 'availHeight', {get: function() { return 1080; }});" +
-                    "  Object.defineProperty(window, 'innerWidth', {get: function() { return 1920; }});" +
-                    "  Object.defineProperty(window, 'innerHeight', {get: function() { return 1080; }});" +
-                    "  Object.defineProperty(window, 'outerWidth', {get: function() { return 1920; }});" +
-                    "  Object.defineProperty(window, 'outerHeight', {get: function() { return 1080; }});" +
-                    "  if ('ontouchstart' in window) {" +
-                    "    delete window.ontouchstart;" +
-                    "  }" +
-                    "  Object.defineProperty(navigator, 'maxTouchPoints', {get: function() { return 0; }});" +
-                    "})();";
-                
-                view.evaluateJavascript(jsCode, null);
-            }
-        });
+        final WebView webView = new WebView(this);
         
         // 强制启用桌面版模式 - 使用Windows Chrome User-Agent以获得更好的兼容性
         String desktopUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -55,6 +49,7 @@ public class WebViewActivity extends AppCompatActivity {
         
         // 启用所有必要的WebView设置
         webView.getSettings().setJavaScriptEnabled(true);
+        webView.getSettings().setDomStorageEnabled(true);
         webView.getSettings().setUseWideViewPort(true);
         webView.getSettings().setLoadWithOverviewMode(true);
         webView.getSettings().setSupportZoom(true);
@@ -63,6 +58,35 @@ public class WebViewActivity extends AppCompatActivity {
         
         // 设置初始缩放
         webView.setInitialScale(1);
+        
+        // 自定义WebViewClient来注入JavaScript
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                // 在页面开始加载时注入
+                view.evaluateJavascript(getDesktopSpoofScript(), null);
+            }
+            
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                // 页面加载完成后再次注入，确保覆盖任何后加载的检测
+                view.evaluateJavascript(getDesktopSpoofScript(), null);
+            }
+        });
+        
+        // 设置WebChromeClient以获得更早的注入时机
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onProgressChanged(WebView view, int newProgress) {
+                super.onProgressChanged(view, newProgress);
+                // 在页面加载过程中持续注入
+                if (newProgress < 100) {
+                    view.evaluateJavascript(getDesktopSpoofScript(), null);
+                }
+            }
+        });
         
         if (url != null && !url.isEmpty()) {
             webView.loadUrl(url);
