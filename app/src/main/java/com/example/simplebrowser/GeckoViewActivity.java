@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.KeyEvent;
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -22,7 +23,9 @@ import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialRequestOp
 import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialType;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.fido.fido2.api.common.Fido2PendingIntent;
 import android.app.PendingIntent;
+import androidx.activity.result.IntentSenderRequest;
 
 /**
  * 使用GeckoView（Firefox引擎）打开网页
@@ -35,8 +38,8 @@ public class GeckoViewActivity extends AppCompatActivity {
     private static GeckoRuntime sRuntime;
     // 是否使用桌面模式（强制桌面 UA + 注入脚本）
     private static final boolean FORCE_DESKTOP = true;
-    // ActivityResult launcher placeholder for FIDO2 / WebAuthn intents
-    private ActivityResultLauncher<android.content.Intent> fido2Launcher;
+    // ActivityResult launcher placeholder for FIDO2 / WebAuthn IntentSender
+    private ActivityResultLauncher<IntentSenderRequest> fido2Launcher;
     private static final String TAG = "GeckoViewActivity";
     
     @Override
@@ -58,11 +61,11 @@ public class GeckoViewActivity extends AppCompatActivity {
         geckoSession.open(sRuntime);
         geckoView.setSession(geckoSession);
         
-        // 初始化 FIDO2 / WebAuthn 的 ActivityResultLauncher（占位实现）
+        // 初始化 FIDO2 / WebAuthn 的 ActivityResultLauncher（使用 IntentSender）
         fido2Launcher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
+                new ActivityResultContracts.StartIntentSenderForResult(),
                 result -> {
-                    // 这里处理 FIDO2 Intent 返回的数据
+                    // 这里处理 FIDO2 IntentSender 返回的数据
                     if (result != null && result.getResultCode() == RESULT_OK && result.getData() != null) {
                         // TODO: 将 result.getData() 中的 attestation/assertion bytes 提取并发送回 Gecko（或通过 Geckoview API 回填）
                         android.util.Log.d("GeckoViewActivity", "FIDO2 result OK: " + result.getData());
@@ -172,14 +175,15 @@ public class GeckoViewActivity extends AppCompatActivity {
 
             Fido.getFido2ApiClient(this)
                     .getRegisterIntent(options)
-                    .addOnSuccessListener(new OnSuccessListener<PendingIntent>() {
+                    .addOnSuccessListener(new OnSuccessListener<Fido2PendingIntent>() {
                         @Override
-                        public void onSuccess(PendingIntent pendingIntent) {
+                        public void onSuccess(Fido2PendingIntent pending) {
                             try {
-                                if (pendingIntent != null) {
-                                    fido2Launcher.launch(pendingIntent.getIntent());
+                                if (pending != null && pending.getIntentSender() != null) {
+                                    IntentSenderRequest req = new IntentSenderRequest.Builder(pending.getIntentSender()).build();
+                                    fido2Launcher.launch(req);
                                 } else {
-                                    Log.w(TAG, "FIDO2 pendingIntent is null");
+                                    Log.w(TAG, "FIDO2 pendingIntent is null or has no IntentSender");
                                 }
                             } catch (Exception e) {
                                 Log.e(TAG, "Failed to launch FIDO2 pending intent", e);
@@ -214,14 +218,15 @@ public class GeckoViewActivity extends AppCompatActivity {
 
             Fido.getFido2ApiClient(this)
                     .getSignIntent(options)
-                    .addOnSuccessListener(new OnSuccessListener<PendingIntent>() {
+                    .addOnSuccessListener(new OnSuccessListener<Fido2PendingIntent>() {
                         @Override
-                        public void onSuccess(PendingIntent pendingIntent) {
+                        public void onSuccess(Fido2PendingIntent pending) {
                             try {
-                                if (pendingIntent != null) {
-                                    fido2Launcher.launch(pendingIntent.getIntent());
+                                if (pending != null && pending.getIntentSender() != null) {
+                                    IntentSenderRequest req = new IntentSenderRequest.Builder(pending.getIntentSender()).build();
+                                    fido2Launcher.launch(req);
                                 } else {
-                                    Log.w(TAG, "FIDO2 sign pendingIntent is null");
+                                    Log.w(TAG, "FIDO2 sign pendingIntent is null or has no IntentSender");
                                 }
                             } catch (Exception e) {
                                 Log.e(TAG, "Failed to launch FIDO2 sign pending intent", e);
