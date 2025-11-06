@@ -38,6 +38,9 @@
         <activity
             android:name=".ChromeTabActivity"
             android:exported="false"/>
+        <activity
+            android:name=".GeckoViewActivity"
+            android:exported="false"/>
     </application>
 
 </manifest>
