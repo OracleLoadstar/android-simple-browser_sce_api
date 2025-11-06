@@ -10,6 +10,19 @@ import androidx.appcompat.app.AppCompatActivity;
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoView;
+import android.util.Base64;
+import android.util.Log;
+import java.util.Collections;
+import com.google.android.gms.fido.Fido;
+import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialCreationOptions;
+import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialRpEntity;
+import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialParameters;
+import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialUserEntity;
+import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialRequestOptions;
+import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialType;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import android.app.PendingIntent;
 
 /**
  * 使用GeckoView（Firefox引擎）打开网页
@@ -24,6 +37,7 @@ public class GeckoViewActivity extends AppCompatActivity {
     private static final boolean FORCE_DESKTOP = true;
     // ActivityResult launcher placeholder for FIDO2 / WebAuthn intents
     private ActivityResultLauncher<android.content.Intent> fido2Launcher;
+    private static final String TAG = "GeckoViewActivity";
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -128,6 +142,101 @@ public class GeckoViewActivity extends AppCompatActivity {
         android.content.Intent dummy = new android.content.Intent();
         dummy.putExtra("dummy", true);
         fido2Launcher.launch(dummy);
+    }
+
+    /**
+     * 使用 Play Services FIDO2 发起注册（Create）流程。
+     * 参数说明：
+     * - challengeB64: 来自服务端的 challenge（Base64 编码）
+     * - rpId: relying party id（通常为域名）
+     * - rpName: 显示名
+     * - userIdB64: 用户 id（Base64 编码）
+     * - userName: 用户名
+     * 注意：页面应将上述参数通过消息桥（或其他方式）传递给原生层。
+     */
+    public void startFido2Register(String challengeB64, String rpId, String rpName, String userIdB64, String userName) {
+        try {
+            byte[] challenge = Base64.decode(challengeB64, Base64.DEFAULT);
+            byte[] userId = Base64.decode(userIdB64, Base64.DEFAULT);
+
+            PublicKeyCredentialRpEntity rp = new PublicKeyCredentialRpEntity(rpId, rpName, null);
+            PublicKeyCredentialUserEntity user = new PublicKeyCredentialUserEntity(userId, userName, userName, null);
+            PublicKeyCredentialParameters params = new PublicKeyCredentialParameters(PublicKeyCredentialType.PUBLIC_KEY.toString(), -7); // ES256
+
+            PublicKeyCredentialCreationOptions options = new PublicKeyCredentialCreationOptions.Builder()
+                    .setRp(rp)
+                    .setUser(user)
+                    .setChallenge(challenge)
+                    .setParameters(Collections.singletonList(params))
+                    .build();
+
+            Fido.getFido2ApiClient(this)
+                    .getRegisterIntent(options)
+                    .addOnSuccessListener(new OnSuccessListener<PendingIntent>() {
+                        @Override
+                        public void onSuccess(PendingIntent pendingIntent) {
+                            try {
+                                if (pendingIntent != null) {
+                                    fido2Launcher.launch(pendingIntent.getIntent());
+                                } else {
+                                    Log.w(TAG, "FIDO2 pendingIntent is null");
+                                }
+                            } catch (Exception e) {
+                                Log.e(TAG, "Failed to launch FIDO2 pending intent", e);
+                            }
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(Exception e) {
+                            Log.e(TAG, "getRegisterIntent failed", e);
+                        }
+                    });
+
+        } catch (Exception e) {
+            Log.e(TAG, "startFido2Register error", e);
+        }
+    }
+
+    /**
+     * 使用 Play Services FIDO2 发起认证（Get/Sign）流程。
+     * - challengeB64: Base64 编码的 challenge
+     * - rpId: relying party id
+     */
+    public void startFido2Sign(String challengeB64, String rpId) {
+        try {
+            byte[] challenge = Base64.decode(challengeB64, Base64.DEFAULT);
+
+            PublicKeyCredentialRequestOptions options = new PublicKeyCredentialRequestOptions.Builder()
+                    .setChallenge(challenge)
+                    .setRpId(rpId)
+                    .build();
+
+            Fido.getFido2ApiClient(this)
+                    .getSignIntent(options)
+                    .addOnSuccessListener(new OnSuccessListener<PendingIntent>() {
+                        @Override
+                        public void onSuccess(PendingIntent pendingIntent) {
+                            try {
+                                if (pendingIntent != null) {
+                                    fido2Launcher.launch(pendingIntent.getIntent());
+                                } else {
+                                    Log.w(TAG, "FIDO2 sign pendingIntent is null");
+                                }
+                            } catch (Exception e) {
+                                Log.e(TAG, "Failed to launch FIDO2 sign pending intent", e);
+                            }
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(Exception e) {
+                            Log.e(TAG, "getSignIntent failed", e);
+                        }
+                    });
+        } catch (Exception e) {
+            Log.e(TAG, "startFido2Sign error", e);
+        }
     }
     
     @Override
