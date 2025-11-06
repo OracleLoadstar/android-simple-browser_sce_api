@@ -61,34 +61,34 @@ public class MainActivity extends AppCompatActivity {
         browserModeGroup = new RadioGroup(this);
         browserModeGroup.setOrientation(RadioGroup.VERTICAL);
         
-        // Chrome Custom Tabs选项（推荐）
-        RadioButton chromeTabsOption = new RadioButton(this);
-        chromeTabsOption.setText("Chrome Custom Tabs (推荐)");
-        chromeTabsOption.setId(1);
-        chromeTabsOption.setChecked(true);
-        browserModeGroup.addView(chromeTabsOption);
-        
-        // 说明文字
-        TextView chromeTabsDesc = new TextView(this);
-        chromeTabsDesc.setText("✓ 完美支持Cloudflare验证\n✓ 完美支持通行密钥/WebAuthn\n✓ 使用真实Chrome浏览器");
-        chromeTabsDesc.setTextSize(12);
-        chromeTabsDesc.setPadding(32, 4, 0, 8);
-        chromeTabsDesc.setTextColor(0xFF666666);
-        browserModeGroup.addView(chromeTabsDesc);
-        
-        // WebView选项
+        // WebView选项（推荐 - 完全全屏）
         RadioButton webViewOption = new RadioButton(this);
-        webViewOption.setText("WebView (内置浏览器)");
+        webViewOption.setText("内置浏览器 (推荐)");
         webViewOption.setId(2);
+        webViewOption.setChecked(true);  // 设为默认选项
         browserModeGroup.addView(webViewOption);
         
         // WebView说明
         TextView webViewDesc = new TextView(this);
-        webViewDesc.setText("⚠ Cloudflare验证可能受限\n⚠ 通行密钥支持有限");
+        webViewDesc.setText("✓ 完全全屏体验\n✓ 完全集成在应用内\n✓ 桌面模式伪装\n⚠ Cloudflare验证可能受限");
         webViewDesc.setTextSize(12);
         webViewDesc.setPadding(32, 4, 0, 8);
-        webViewDesc.setTextColor(0xFFFF9800);
+        webViewDesc.setTextColor(0xFF2196F3);  // 蓝色表示推荐
         browserModeGroup.addView(webViewDesc);
+        
+        // Chrome Custom Tabs选项（用于特殊需求）
+        RadioButton chromeTabsOption = new RadioButton(this);
+        chromeTabsOption.setText("Chrome Custom Tabs");
+        chromeTabsOption.setId(1);
+        browserModeGroup.addView(chromeTabsOption);
+        
+        // 说明文字
+        TextView chromeTabsDesc = new TextView(this);
+        chromeTabsDesc.setText("✓ 完美支持Cloudflare验证\n✓ 完美支持通行密钥/WebAuthn\n⚠ 使用系统默认浏览器（非全屏）");
+        chromeTabsDesc.setTextSize(12);
+        chromeTabsDesc.setPadding(32, 4, 0, 8);
+        chromeTabsDesc.setTextColor(0xFF666666);
+        browserModeGroup.addView(chromeTabsDesc);
         
         layout.addView(browserModeGroup);
         
