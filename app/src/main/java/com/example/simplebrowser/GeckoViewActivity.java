@@ -307,7 +307,7 @@ public class GeckoViewActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         // 额外保护：和 onKeyDown 保持一致的后退行为
-        if (geckoSession != null && mCanGoBack) {
+        if (geckoSession != null && geckoSession.canGoBack()) {
             geckoSession.goBack();
             return;
         }
