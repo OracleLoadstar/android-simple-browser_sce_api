@@ -14,6 +14,8 @@ import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -26,6 +28,8 @@ public class MainActivity extends AppCompatActivity {
     private RadioGroup browserModeGroup;
     private ExecutorService executorService;
     private Handler mainHandler;
+    private Bitmap userIconBitmap;
+    private ActivityResultLauncher<String> pickImageLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,6 +109,29 @@ public class MainActivity extends AppCompatActivity {
         browserModeGroup.addView(chromeTabsDesc);
         
         layout.addView(browserModeGroup);
+
+        // 选择自定义图标（可选）
+        Button pickIconBtn = new Button(this);
+        pickIconBtn.setText("选择图标（可选）");
+        android.widget.LinearLayout.LayoutParams pickBtnParams = new android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+        pickBtnParams.topMargin = 16;
+        layout.addView(pickIconBtn, pickBtnParams);
+
+        // 注册图片选择器
+        pickImageLauncher = registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+            if (uri != null) {
+                try (InputStream in = getContentResolver().openInputStream(uri)) {
+                    Bitmap bmp = BitmapFactory.decodeStream(in);
+                    userIconBitmap = bmp;
+                    Toast.makeText(this, "已选择自定义图标", Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    Toast.makeText(this, "图标加载失败", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        pickIconBtn.setOnClickListener(v2 -> pickImageLauncher.launch("image/*"));
         
         // 生成快捷方式按钮
         shortcutBtn = new Button(this);
@@ -127,11 +154,14 @@ public class MainActivity extends AppCompatActivity {
                 int selectedId = browserModeGroup.getCheckedRadioButtonId();
                 String finalUrl = url;
                 
-                // 显示进度提示
-                Toast.makeText(this, "正在获取网站图标...", Toast.LENGTH_SHORT).show();
-                
-                // 异步获取网站图标
-                fetchFaviconAndCreateShortcut(finalUrl, selectedId);
+                if (userIconBitmap != null) {
+                    // 使用自定义图标，跳过图标抓取与兜底
+                    createShortcut(finalUrl, selectedId, userIconBitmap);
+                } else {
+                    // 显示进度提示并抓取网站图标
+                    Toast.makeText(this, "正在获取网站图标...", Toast.LENGTH_SHORT).show();
+                    fetchFaviconAndCreateShortcut(finalUrl, selectedId);
+                }
             } else {
                 Toast.makeText(this, "请输入网址", Toast.LENGTH_SHORT).show();
             }

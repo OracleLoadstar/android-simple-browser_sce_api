@@ -43,6 +43,7 @@ public class GeckoViewActivity extends AppCompatActivity {
     // ActivityResult launcher placeholder for FIDO2 / WebAuthn IntentSender
     private ActivityResultLauncher<IntentSenderRequest> fido2Launcher;
     private static final String TAG = "GeckoViewActivity";
+    private volatile boolean mCanGoBack = false;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +56,7 @@ public class GeckoViewActivity extends AppCompatActivity {
         if (sRuntime == null) {
             sRuntime = GeckoRuntime.create(this);
         }
+
         
         // 创建并配置GeckoSession
         geckoSession = new GeckoSession();
@@ -62,6 +64,16 @@ public class GeckoViewActivity extends AppCompatActivity {
         // 为保证兼容性，本实现改为通过注入脚本强制桌面特征（见后续注入逻辑）。
         geckoSession.open(sRuntime);
         geckoView.setSession(geckoSession);
+        
+        // 监听导航能力变化，更新是否可后退
+        geckoSession.setNavigationDelegate(new GeckoSession.NavigationDelegate() {
+            @Override
+            public void onCanGoBack(GeckoSession session, boolean canGoBack) {
+                mCanGoBack = canGoBack;
+            }
+            @Override
+            public void onCanGoForward(GeckoSession session, boolean canGoForward) { /* no-op */ }
+        });
         
         // 初始化 FIDO2 / WebAuthn 的 ActivityResultLauncher（使用 IntentSender）
         fido2Launcher = registerForActivityResult(
@@ -100,13 +112,11 @@ public class GeckoViewActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     try {
-                        geckoSession.getWebExtensionController();
-                        // evaluateJS 在部分 geckoview 版本里是通过 GeckoSession#sendMessage 或类似方法实现。
-                        // 这里调用 evaluateJS 可能不存在；作为兼容方案，我们调用 loadUri("javascript:..."), 让引擎执行脚本。
-                        geckoSession.loadUri("javascript:(function() { " + desktopSpoofScript + " })();");
-                    } catch (Throwable ignored) {
-                        // 忽略注入失败，浏览器仍可正常工作
-                    }
+                        java.lang.reflect.Method eval = geckoSession.getClass().getMethod("evaluateJS", String.class);
+                        eval.invoke(geckoSession, desktopSpoofScript);
+                    } catch (NoSuchMethodException nsme) {
+                        // evaluateJS 不存在则跳过，避免影响历史
+                    } catch (Throwable ignored) {}
                 }
             }, 500);
         }
@@ -280,52 +290,26 @@ public class GeckoViewActivity extends AppCompatActivity {
     
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        // 处理返回键：优先让 GeckoSession 后退（如果可行），否则交给系统
+        // 处理返回键：优先让 GeckoSession 后退（如果可行），否则最小化应用
         if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (geckoSession != null) {
-                try {
-                    // 优先使用 canGoBack()（如果存在）
-                    java.lang.reflect.Method canGoBack = geckoSession.getClass().getMethod("canGoBack");
-                    Object res = canGoBack.invoke(geckoSession);
-                    if (res instanceof Boolean && ((Boolean) res)) {
-                        geckoSession.goBack();
-                        return true;
-                    }
-                } catch (NoSuchMethodException nsme) {
-                    // 没有 canGoBack，尝试通过 NavigationDelegate 或直接 goBack
-                    try {
-                        if (geckoSession.getNavigationDelegate() != null) {
-                            geckoSession.goBack();
-                            return true;
-                        }
-                    } catch (Throwable ignored) { }
-                } catch (Throwable ignored) { }
+            if (geckoSession != null && mCanGoBack) {
+                geckoSession.goBack();
+            } else {
+                moveTaskToBack(true);
             }
+            return true;
         }
         return super.onKeyDown(keyCode, event);
     }
 
     @Override
     public void onBackPressed() {
-        // 额外保护：和 onKeyDown 保持一致的后退行为
-        if (geckoSession != null) {
-            try {
-                java.lang.reflect.Method canGoBack = geckoSession.getClass().getMethod("canGoBack");
-                Object res = canGoBack.invoke(geckoSession);
-                if (res instanceof Boolean && ((Boolean) res)) {
-                    geckoSession.goBack();
-                    return;
-                }
-            } catch (NoSuchMethodException nsme) {
-                try {
-                    if (geckoSession.getNavigationDelegate() != null) {
-                        geckoSession.goBack();
-                        return;
-                    }
-                } catch (Throwable ignored) { }
-            } catch (Throwable ignored) { }
+        // 与 onKeyDown 一致：可后退则后退，否则最小化
+        if (geckoSession != null && mCanGoBack) {
+            geckoSession.goBack();
+        } else {
+            moveTaskToBack(true);
         }
-        super.onBackPressed();
     }
 
     /**
