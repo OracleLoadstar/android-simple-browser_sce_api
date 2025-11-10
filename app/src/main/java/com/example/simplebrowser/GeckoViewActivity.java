@@ -4,13 +4,30 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.KeyEvent;
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoView;
-import org.mozilla.geckoview.GeckoSessionSettings;
+import android.util.Base64;
+import android.util.Log;
+import java.util.Collections;
+import com.google.android.gms.fido.Fido;
+import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialCreationOptions;
+import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialRpEntity;
+import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialParameters;
+import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialUserEntity;
+import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialRequestOptions;
+import com.google.android.gms.fido.fido2.api.common.PublicKeyCredentialType;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+// Note: avoid direct compile-time dependency on Fido2PendingIntent type to improve
+// compatibility across Play Services versions — we'll handle the returned object
+// at runtime (instanceof or reflection) to extract an IntentSender.
+import android.app.PendingIntent;
+import androidx.activity.result.IntentSenderRequest;
 
 /**
  * 使用GeckoView（Firefox引擎）打开网页
@@ -23,8 +40,9 @@ public class GeckoViewActivity extends AppCompatActivity {
     private static GeckoRuntime sRuntime;
     // 是否使用桌面模式（强制桌面 UA + 注入脚本）
     private static final boolean FORCE_DESKTOP = true;
-    // ActivityResult launcher placeholder for FIDO2 / WebAuthn intents
-    private ActivityResultLauncher<android.content.Intent> fido2Launcher;
+    // ActivityResult launcher placeholder for FIDO2 / WebAuthn IntentSender
+    private ActivityResultLauncher<IntentSenderRequest> fido2Launcher;
+    private static final String TAG = "GeckoViewActivity";
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,25 +58,16 @@ public class GeckoViewActivity extends AppCompatActivity {
         
         // 创建并配置GeckoSession
         geckoSession = new GeckoSession();
-        // 如果需要，可以配置 GeckoSessionSettings（例如 user-agent）
-        if (FORCE_DESKTOP) {
-            try {
-                GeckoSessionSettings settings = new GeckoSessionSettings();
-                // 设置为桌面UA，模仿 WebViewActivity 的 UA
-                settings.setUserAgentString("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-                geckoSession.setSessionSettings(settings);
-            } catch (Throwable ignored) {
-                // 旧版 Geckoview 可能没有这些 API，忽略并继续
-            }
-        }
+        // 如果需要设置 UA，GeckoView/GeckoSession 的 API 在不同版本中差异较大。
+        // 为保证兼容性，本实现改为通过注入脚本强制桌面特征（见后续注入逻辑）。
         geckoSession.open(sRuntime);
         geckoView.setSession(geckoSession);
         
-        // 初始化 FIDO2 / WebAuthn 的 ActivityResultLauncher（占位实现）
+        // 初始化 FIDO2 / WebAuthn 的 ActivityResultLauncher（使用 IntentSender）
         fido2Launcher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
+                new ActivityResultContracts.StartIntentSenderForResult(),
                 result -> {
-                    // 这里处理 FIDO2 Intent 返回的数据
+                    // 这里处理 FIDO2 IntentSender 返回的数据
                     if (result != null && result.getResultCode() == RESULT_OK && result.getData() != null) {
                         // TODO: 将 result.getData() 中的 attestation/assertion bytes 提取并发送回 Gecko（或通过 Geckoview API 回填）
                         android.util.Log.d("GeckoViewActivity", "FIDO2 result OK: " + result.getData());
@@ -85,7 +94,8 @@ public class GeckoViewActivity extends AppCompatActivity {
             final String desktopSpoofScript = getDesktopSpoofScript();
             // 在页面加载后注入脚本 - 使用简单的监听器（GeckoSession.loadUri 不直接提供 onPageFinished 的钩子）
             // 所以我们使用 evaluateJS 在短延迟后注入，作为兼容实现
-            geckoView.getSettings().setLayerType(View.LAYER_TYPE_HARDWARE);
+            // GeckoView 是一个 View，直接设置 layerType
+            geckoView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
             geckoView.postDelayed(new Runnable() {
                 @Override
                 public void run() {
@@ -133,10 +143,139 @@ public class GeckoViewActivity extends AppCompatActivity {
      * 注意：某些 geckoview 版本提供了直接的 WebAuthn delegate 回调，优先使用 Geckoview 提供的 API将结果直接回填给引擎。
      */
     private void startFido2FlowPlaceholder() {
-        // 示例占位：构造一个空 Intent 并启动，真实实现应用 FIDO2 API 构造
-        android.content.Intent dummy = new android.content.Intent();
-        dummy.putExtra("dummy", true);
-        fido2Launcher.launch(dummy);
+        // 占位：当前环境下不启动任何 IntentSender（避免类型不匹配）；
+        // 真实环境可调用 startFido2Register/startFido2Sign
+        android.util.Log.w(TAG, "startFido2FlowPlaceholder: FIDO2 launcher not invoked in placeholder mode");
+    }
+
+    /**
+     * 使用 Play Services FIDO2 发起注册（Create）流程。
+     * 参数说明：
+     * - challengeB64: 来自服务端的 challenge（Base64 编码）
+     * - rpId: relying party id（通常为域名）
+     * - rpName: 显示名
+     * - userIdB64: 用户 id（Base64 编码）
+     * - userName: 用户名
+     * 注意：页面应将上述参数通过消息桥（或其他方式）传递给原生层。
+     */
+    public void startFido2Register(String challengeB64, String rpId, String rpName, String userIdB64, String userName) {
+        try {
+            byte[] challenge = Base64.decode(challengeB64, Base64.DEFAULT);
+            byte[] userId = Base64.decode(userIdB64, Base64.DEFAULT);
+
+            PublicKeyCredentialRpEntity rp = new PublicKeyCredentialRpEntity(rpId, rpName, null);
+            PublicKeyCredentialUserEntity user = new PublicKeyCredentialUserEntity(userId, userName, userName, null);
+            PublicKeyCredentialParameters params = new PublicKeyCredentialParameters(PublicKeyCredentialType.PUBLIC_KEY.toString(), -7); // ES256
+
+            PublicKeyCredentialCreationOptions options = new PublicKeyCredentialCreationOptions.Builder()
+                    .setRp(rp)
+                    .setUser(user)
+                    .setChallenge(challenge)
+                    .setParameters(Collections.singletonList(params))
+                    .build();
+
+            Fido.getFido2ApiClient(this)
+                    .getRegisterIntent(options)
+                    .addOnSuccessListener(new OnSuccessListener<Object>() {
+                        @Override
+                        public void onSuccess(Object pending) {
+                            try {
+                                android.content.IntentSender sender = null;
+                                if (pending == null) {
+                                    Log.w(TAG, "FIDO2 pending is null");
+                                } else if (pending instanceof PendingIntent) {
+                                    sender = ((PendingIntent) pending).getIntentSender();
+                                } else {
+                                    // Try reflection: some Play Services versions return Fido2PendingIntent
+                                    try {
+                                        java.lang.reflect.Method m = pending.getClass().getMethod("getIntentSender");
+                                        Object o = m.invoke(pending);
+                                        if (o instanceof android.content.IntentSender) {
+                                            sender = (android.content.IntentSender) o;
+                                        }
+                                    } catch (NoSuchMethodException nsme) {
+                                        Log.w(TAG, "pending object has no getIntentSender method");
+                                    }
+                                }
+                                if (sender != null) {
+                                    IntentSenderRequest req = new IntentSenderRequest.Builder(sender).build();
+                                    fido2Launcher.launch(req);
+                                } else {
+                                    Log.w(TAG, "FIDO2 pendingIntent has no IntentSender");
+                                }
+                            } catch (Exception e) {
+                                Log.e(TAG, "Failed to launch FIDO2 pending intent", e);
+                            }
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(Exception e) {
+                            Log.e(TAG, "getRegisterIntent failed", e);
+                        }
+                    });
+
+        } catch (Exception e) {
+            Log.e(TAG, "startFido2Register error", e);
+        }
+    }
+
+    /**
+     * 使用 Play Services FIDO2 发起认证（Get/Sign）流程。
+     * - challengeB64: Base64 编码的 challenge
+     * - rpId: relying party id
+     */
+    public void startFido2Sign(String challengeB64, String rpId) {
+        try {
+            byte[] challenge = Base64.decode(challengeB64, Base64.DEFAULT);
+
+            PublicKeyCredentialRequestOptions options = new PublicKeyCredentialRequestOptions.Builder()
+                    .setChallenge(challenge)
+                    .setRpId(rpId)
+                    .build();
+
+            Fido.getFido2ApiClient(this)
+                    .getSignIntent(options)
+                    .addOnSuccessListener(new OnSuccessListener<Object>() {
+                        @Override
+                        public void onSuccess(Object pending) {
+                            try {
+                                android.content.IntentSender sender = null;
+                                if (pending == null) {
+                                    Log.w(TAG, "FIDO2 pending is null");
+                                } else if (pending instanceof PendingIntent) {
+                                    sender = ((PendingIntent) pending).getIntentSender();
+                                } else {
+                                    try {
+                                        java.lang.reflect.Method m = pending.getClass().getMethod("getIntentSender");
+                                        Object o = m.invoke(pending);
+                                        if (o instanceof android.content.IntentSender) {
+                                            sender = (android.content.IntentSender) o;
+                                        }
+                                    } catch (NoSuchMethodException nsme) {
+                                        Log.w(TAG, "pending object has no getIntentSender method");
+                                    }
+                                }
+                                if (sender != null) {
+                                    IntentSenderRequest req = new IntentSenderRequest.Builder(sender).build();
+                                    fido2Launcher.launch(req);
+                                } else {
+                                    Log.w(TAG, "FIDO2 sign pendingIntent has no IntentSender");
+                                }
+                            } catch (Exception e) {
+                                Log.e(TAG, "Failed to launch FIDO2 sign pending intent", e);
+                            }
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(Exception e) {
+                            Log.e(TAG, "getSignIntent failed", e);
+                        }
+                    });
+        } catch (Exception e) {
+            Log.e(TAG, "startFido2Sign error", e);
+        }
     }
     
     @Override
