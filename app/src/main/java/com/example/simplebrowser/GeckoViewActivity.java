@@ -74,8 +74,8 @@ public class GeckoViewActivity extends AppCompatActivity {
 
         // 内容委托：下载与长按上下文菜单
         geckoSession.setContentDelegate(new GeckoSession.ContentDelegate() {
-            @Override
-            public void onDownload(GeckoSession session, org.mozilla.geckoview.Download download) {
+            // GeckoView older version: no direct Download class; fallback: inject JS to intercept links with download attribute could be future enhancement.
+            // Removing onDownload override for compatibility.
                 try {
                     String url = download != null ? download.uri : null;
                     if (url == null) return;
