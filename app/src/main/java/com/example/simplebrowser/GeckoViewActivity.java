@@ -74,7 +74,30 @@ public class GeckoViewActivity extends AppCompatActivity {
 
         // 内容委托：下载与长按上下文菜单
         geckoSession.setContentDelegate(new GeckoSession.ContentDelegate() {
-            // NOTE: Download callback removed for compatibility with current GeckoView version.
+            // 捕获Gecko触发的外部响应(下载)
+            public void onExternalResponse(GeckoSession session, GeckoSession.ContentDelegate.ExternalResponse response) {
+                try {
+                    String url = (response != null) ? response.uri : null;
+                    if (url == null) return;
+                    DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+                    android.net.Uri uri = android.net.Uri.parse(url);
+                    DownloadManager.Request req = new DownloadManager.Request(uri);
+                    String fileName = (response != null && response.filename != null && !response.filename.isEmpty())
+                            ? response.filename
+                            : URLUtil.guessFileName(url,
+                                    response != null ? response.contentDisposition : null,
+                                    response != null ? response.contentType : null);
+                    if (response != null && response.userAgent != null) req.addRequestHeader("User-Agent", response.userAgent);
+                    if (response != null && response.referrerUri != null) req.addRequestHeader("Referer", response.referrerUri);
+                    if (response != null && response.contentType != null) req.setMimeType(response.contentType);
+                    req.setTitle(fileName);
+                    req.setDescription("正在下载");
+                    req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                    req.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
+                    long id = dm.enqueue(req);
+                    startActivity(new android.content.Intent(GeckoViewActivity.this, DownloadActivity.class).putExtra("downloadId", id));
+                } catch (Exception e) { Toast.makeText(GeckoViewActivity.this, "下载失败", Toast.LENGTH_SHORT).show(); }
+            }
             @Override
             public void onContextMenu(GeckoSession session, int screenX, int screenY,
                                       GeckoSession.ContentDelegate.ContextElement element) {
@@ -82,7 +105,7 @@ public class GeckoViewActivity extends AppCompatActivity {
                 java.util.ArrayList<String> options = new java.util.ArrayList<>();
                 final String link = element.linkUri;
                 final String src = element.srcUri;
-                if (link != null && !link.isEmpty()) options.add("复制链接");
+                if (link != null && !link.isEmpty()) { options.add("复制链接"); options.add("下载链接"); }
                 if (src != null && !src.isEmpty()) options.add("保存图片");
                 if (options.isEmpty()) return;
                 new AlertDialog.Builder(GeckoViewActivity.this)
@@ -95,6 +118,19 @@ public class GeckoViewActivity extends AppCompatActivity {
                                     cb.setPrimaryClip(ClipData.newPlainText("link", link));
                                     Toast.makeText(GeckoViewActivity.this, "已复制", Toast.LENGTH_SHORT).show();
                                 } catch (Exception e) { Toast.makeText(GeckoViewActivity.this, "复制失败", Toast.LENGTH_SHORT).show(); }
+                            } else if ("下载链接".equals(choice) && link != null) {
+                                try {
+                                    DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+                                    android.net.Uri uriL = android.net.Uri.parse(link);
+                                    DownloadManager.Request reqL = new DownloadManager.Request(uriL);
+                                    String fileNameL = URLUtil.guessFileName(link, null, null);
+                                    reqL.setTitle(fileNameL);
+                                    reqL.setDescription("正在下载");
+                                    reqL.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                                    reqL.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileNameL);
+                                    long idL = dm.enqueue(reqL);
+                                    startActivity(new android.content.Intent(GeckoViewActivity.this, DownloadActivity.class).putExtra("downloadId", idL));
+                                } catch (Exception e) { Toast.makeText(GeckoViewActivity.this, "下载失败", Toast.LENGTH_SHORT).show(); }
                             } else if ("保存图片".equals(choice) && src != null) {
                                 try {
                                     DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
