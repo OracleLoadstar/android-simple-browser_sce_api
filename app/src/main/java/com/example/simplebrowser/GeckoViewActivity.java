@@ -111,14 +111,12 @@ public class GeckoViewActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     try {
-                        // 优先使用 evaluateJS(如果存在)来避免产生新的导航条目破坏历史记录
                         java.lang.reflect.Method eval = geckoSession.getClass().getMethod("evaluateJS", String.class);
                         eval.invoke(geckoSession, desktopSpoofScript);
                     } catch (NoSuchMethodException nsme) {
-                        // 如果没有 evaluateJS API，则暂时不再使用 javascript: 导航，避免清空历史
-                        // 可在后续通过 WebExtension 实现注入；这里静默跳过
-                    } catch (Throwable ignored) {
-                    }
+                        // Fallback: evaluateJS 不存在时使用 javascript: 注入保证桌面脚本生效
+                        geckoSession.loadUri("javascript:(function() { " + desktopSpoofScript + " })();");
+                    } catch (Throwable ignored) {}
                 }
             }, 500);
         }
@@ -306,12 +304,12 @@ public class GeckoViewActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        // 额外保护：和 onKeyDown 保持一致的后退行为
-        if (geckoSession != null && geckoSession.canGoBack()) {
+        // 与 onKeyDown 一致：可后退则后退，否则最小化
+        if (geckoSession != null && mCanGoBack) {
             geckoSession.goBack();
-            return;
+        } else {
+            moveTaskToBack(true);
         }
-        moveTaskToBack(true);
     }
 
     /**
