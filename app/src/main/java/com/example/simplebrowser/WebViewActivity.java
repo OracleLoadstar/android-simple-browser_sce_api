@@ -257,9 +257,13 @@ public class WebViewActivity extends AppCompatActivity {
     
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        // 处理返回键：如果WebView可以后退，则后退，否则关闭Activity
-        if (keyCode == KeyEvent.KEYCODE_BACK && webView.canGoBack()) {
-            webView.goBack();
+        // 系统返回键优先回退网页；若无历史则最小化应用，避免回到 MainActivity
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (webView.canGoBack()) {
+                webView.goBack();
+            } else {
+                moveTaskToBack(true);
+            }
             return true;
         }
         return super.onKeyDown(keyCode, event);
@@ -293,6 +297,16 @@ public class WebViewActivity extends AppCompatActivity {
         // 权限结果处理 - 即使拒绝也继续运行，只是某些功能可能不可用
         if (requestCode == PERMISSION_REQUEST_CODE) {
             // 可以在这里添加日志或提示，但不阻止应用运行
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        // 与实体返回键一致：先网页后退，否则最小化应用
+        if (webView != null && webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            moveTaskToBack(true);
         }
     }
     
