@@ -103,8 +103,8 @@ public class GeckoViewActivity extends AppCompatActivity {
                                     String imgName = URLUtil.guessFileName(src, null, null);
                                     req2.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
                                     req2.setDestinationInExternalPublicDir(Environment.DIRECTORY_PICTURES, imgName);
-                                    dm.enqueue(req2);
-                                    Toast.makeText(GeckoViewActivity.this, "开始保存图片", Toast.LENGTH_SHORT).show();
+                                    long id2 = dm.enqueue(req2);
+                                    startActivity(new Intent(GeckoViewActivity.this, DownloadActivity.class).putExtra("downloadId", id2));
                                 } catch (Exception e) { Toast.makeText(GeckoViewActivity.this, "保存失败", Toast.LENGTH_SHORT).show(); }
                             }
                         })
