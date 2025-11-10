@@ -162,13 +162,13 @@ public class WebViewActivity extends AppCompatActivity {
         }
         
         // 下载监听 - 使用系统DownloadManager
-        webView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
+        webView.setDownloadListener((downloadUrl, userAgent, contentDisposition, mimetype, contentLength) -> {
             try {
                 DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-                android.net.Uri uri = android.net.Uri.parse(url);
+                android.net.Uri uri = android.net.Uri.parse(downloadUrl);
                 DownloadManager.Request req = new DownloadManager.Request(uri);
-                String fileName = URLUtil.guessFileName(url, contentDisposition, mimetype);
-                String cookies = CookieManager.getInstance().getCookie(url);
+                String fileName = URLUtil.guessFileName(downloadUrl, contentDisposition, mimetype);
+                String cookies = CookieManager.getInstance().getCookie(downloadUrl);
                 if (cookies != null) req.addRequestHeader("Cookie", cookies);
                 if (userAgent != null) req.addRequestHeader("User-Agent", userAgent);
                 if (mimetype != null) req.setMimeType(mimetype);
@@ -176,9 +176,9 @@ public class WebViewActivity extends AppCompatActivity {
                 req.setVisibleInDownloadsUi(true);
                 req.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
                 dm.enqueue(req);
-                Toast.makeText(this, "开始下载: " + fileName, Toast.LENGTH_SHORT).show();
+                android.widget.Toast.makeText(this, "开始下载: " + fileName, android.widget.Toast.LENGTH_SHORT).show();
             } catch (Exception e) {
-                Toast.makeText(this, "下载失败", Toast.LENGTH_SHORT).show();
+                android.widget.Toast.makeText(this, "下载失败", android.widget.Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -204,8 +204,8 @@ public class WebViewActivity extends AppCompatActivity {
                                 try {
                                     ClipboardManager cb = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
                                     cb.setPrimaryClip(ClipData.newPlainText("link", extra));
-                                    Toast.makeText(this, "已复制", Toast.LENGTH_SHORT).show();
-                                } catch (Exception e) { Toast.makeText(this, "复制失败", Toast.LENGTH_SHORT).show(); }
+                                    android.widget.Toast.makeText(this, "已复制", android.widget.Toast.LENGTH_SHORT).show();
+                                } catch (Exception e) { android.widget.Toast.makeText(this, "复制失败", android.widget.Toast.LENGTH_SHORT).show(); }
                             } else if ("保存图片".equals(choice)) {
                                 try {
                                     DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
@@ -217,8 +217,8 @@ public class WebViewActivity extends AppCompatActivity {
                                     req2.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
                                     req2.setDestinationInExternalPublicDir(Environment.DIRECTORY_PICTURES, imgName);
                                     dm.enqueue(req2);
-                                    Toast.makeText(this, "开始保存图片", Toast.LENGTH_SHORT).show();
-                                } catch (Exception e) { Toast.makeText(this, "保存失败", Toast.LENGTH_SHORT).show(); }
+                                    android.widget.Toast.makeText(this, "开始保存图片", android.widget.Toast.LENGTH_SHORT).show();
+                                } catch (Exception e) { android.widget.Toast.makeText(this, "保存失败", android.widget.Toast.LENGTH_SHORT).show(); }
                             }
                         })
                         .show();
