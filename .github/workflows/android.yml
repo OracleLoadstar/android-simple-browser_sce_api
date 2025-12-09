@@ -83,10 +83,52 @@ jobs:
         run: ./gradlew assembleDebug --no-daemon
         working-directory: ./
 
+      # 配置签名（仅在发布时）
+      - name: 配置Release签名
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          # 验证所有必需的签名凭据是否存在
+          if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ] || \
+             [ -z "${{ secrets.KEYSTORE_PASSWORD }}" ] || \
+             [ -z "${{ secrets.KEY_ALIAS }}" ] || \
+             [ -z "${{ secrets.KEY_PASSWORD }}" ]; then
+            echo "Error: Missing required signing secrets"
+            echo "Please configure: KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD"
+            exit 1
+          fi
+          
+          # 创建临时目录用于存放签名文件
+          mkdir -p /tmp/signing
+          chmod 700 /tmp/signing
+          
+          # 从GitHub Secrets解码keystore文件到临时目录
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > /tmp/signing/release.keystore
+          chmod 600 /tmp/signing/release.keystore
+          
+          # 验证keystore文件是否成功创建
+          if [ ! -f /tmp/signing/release.keystore ] || [ ! -s /tmp/signing/release.keystore ]; then
+            echo "Error: Failed to create keystore file or file is empty"
+            exit 1
+          fi
+          
+          echo "Keystore file created successfully in secure temporary directory"
+
       - name: Build Release APK
         if: startsWith(github.ref, 'refs/tags/')
         run: ./gradlew assembleRelease --no-daemon
         working-directory: ./
+        env:
+          KEYSTORE_FILE: /tmp/signing/release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: 清理签名密钥文件
+        if: always() && startsWith(github.ref, 'refs/tags/')
+        run: |
+          # 删除临时的keystore文件和目录以防止泄露
+          rm -rf /tmp/signing
+          echo "Keystore file and temporary directory cleaned up"
 
       - name: 重命名APK文件
         run: |
@@ -94,7 +136,11 @@ jobs:
           if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
             cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/SCE-API-${VERSION}-debug.apk
           fi
-          if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+          # Release APK现在是已签名的
+          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
+            cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/SCE-API-${VERSION}-release.apk
+          elif [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            # 如果签名失败，仍然复制未签名版本
             cp app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/SCE-API-${VERSION}-release.apk
           fi
 
@@ -127,7 +173,7 @@ jobs:
             
             ### 下载说明
             - **SCE-API-${{ steps.version.outputs.version }}-debug.apk**: 调试版本，包含调试信息
-            - **SCE-API-${{ steps.version.outputs.version }}-release.apk**: 发布版本（未签名）
+            - **SCE-API-${{ steps.version.outputs.version }}-release.apk**: 发布版本（已签名）
             
             ### 安装要求
             - Android 7.0 (API 24) 或更高版本

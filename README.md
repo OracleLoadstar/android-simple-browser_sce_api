@@ -102,6 +102,59 @@ The app automatically grants WebView permission requests for:
 - versionCode 必须单调递增
 - 建议 versionCode 使用公式：`主版本*10000 + 次版本*100 + 修订号`（例如 1.0.1 -> 10001）
 
+### Release APK 签名配置
+
+项目使用固定签名对 Release APK 进行签名。签名配置通过 GitHub Secrets 管理：
+
+#### 配置 GitHub Secrets
+
+在仓库的 Settings > Secrets and variables > Actions 中添加以下 secrets：
+
+1. **KEYSTORE_BASE64**: 密钥库文件的 base64 编码
+2. **KEYSTORE_PASSWORD**: 密钥库密码
+3. **KEY_ALIAS**: 密钥别名
+4. **KEY_PASSWORD**: 密钥密码
+
+#### 生成密钥库文件
+
+如果还没有密钥库文件，可以使用以下命令生成：
+
+```bash
+keytool -genkey -v -keystore release.keystore -alias release \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
+
+#### 将密钥库编码为 base64
+
+```bash
+# Linux/macOS
+base64 release.keystore | tr -d '\n' > keystore.base64.txt
+
+# Windows (PowerShell)
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("release.keystore")) | Out-File -Encoding ASCII keystore.base64.txt
+```
+
+然后将 `keystore.base64.txt` 的内容复制到 GitHub Secrets 的 `KEYSTORE_BASE64` 中。
+
+#### 本地构建签名版本
+
+本地构建需要创建 `keystore.properties` 文件（参考 `keystore.properties.template`）：
+
+```properties
+storeFile=release.keystore
+storePassword=你的密钥库密码
+keyAlias=release
+keyPassword=你的密钥密码
+```
+
+然后运行：
+
+```bash
+./gradlew assembleRelease
+```
+
+**注意**: `keystore.properties` 和 `*.keystore` 文件已添加到 `.gitignore`，不会被提交到仓库。
+
 ## Building
 
 ```bash
