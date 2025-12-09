@@ -71,17 +71,27 @@ The app automatically grants WebView permission requests for:
 本项目支持自动版本管理和发布：
 
 ### 创建新版本
-1. 确定新版本号（例如：1.0.1）
-2. 创建并推送 tag：
-```bash
-git tag v1.0.1
-git push origin v1.0.1
-```
+1. 在 `app/build.gradle` 中更新版本信息：
+   ```gradle
+   versionCode 2
+   versionName "1.0.1"
+   ```
+2. 提交更改：
+   ```bash
+   git add app/build.gradle
+   git commit -m "chore: bump version to 1.0.1"
+   git push
+   ```
+3. 创建并推送 tag：
+   ```bash
+   git tag v1.0.1
+   git push origin v1.0.1
+   ```
 
 ### 自动化流程
 推送 tag 后，GitHub Actions 将自动：
+- 从 tag 提取版本号并应用到构建
 - 构建 Debug 和 Release APK
-- 更新 `app/build.gradle` 中的 versionCode（自动递增）
 - 创建 GitHub Release
 - 上传编译好的 APK 到 Release 页面
 
@@ -89,6 +99,8 @@ git push origin v1.0.1
 - 遵循语义化版本 (Semantic Versioning)
 - 格式：`v主版本.次版本.修订号`（例如：v1.0.0）
 - Tag 必须以 `v` 开头
+- versionCode 必须单调递增
+- 建议 versionCode 使用公式：`主版本*10000 + 次版本*100 + 修订号`（例如 1.0.1 -> 10001）
 
 ## Building
 
