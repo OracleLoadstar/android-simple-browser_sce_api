@@ -122,17 +122,15 @@ public class MainActivity extends AppCompatActivity {
                     url = "https://" + url;
                 }
                 
-                // 获取选择的浏览器模式
-                int selectedId = browserModeGroup.getCheckedRadioButtonId();
                 String finalUrl = url;
                 
                 if (userIconBitmap != null) {
                     // 使用自定义图标，跳过图标抓取与兜底
-                    createShortcut(finalUrl, selectedId, userIconBitmap);
+                    createShortcut(finalUrl, userIconBitmap);
                 } else {
                     // 显示进度提示并抓取网站图标
                     Toast.makeText(this, "正在获取网站图标...", Toast.LENGTH_SHORT).show();
-                    fetchFaviconAndCreateShortcut(finalUrl, selectedId);
+                    fetchFaviconAndCreateShortcut(finalUrl);
                 }
             } else {
                 Toast.makeText(this, "请输入网址", Toast.LENGTH_SHORT).show();
@@ -142,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(layout);
     }
 
-    private void fetchFaviconAndCreateShortcut(String url, int browserMode) {
+    private void fetchFaviconAndCreateShortcut(String url) {
         executorService.execute(() -> {
             Bitmap favicon = null;
             
@@ -165,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
             }
             
             Bitmap finalFavicon = favicon;
-            mainHandler.post(() -> createShortcut(url, browserMode, finalFavicon));
+            mainHandler.post(() -> createShortcut(url, finalFavicon));
         });
     }
     
@@ -202,7 +200,7 @@ public class MainActivity extends AppCompatActivity {
         return null;
     }
     
-    private void createShortcut(String url, int browserMode, Bitmap favicon) {
+    private void createShortcut(String url, Bitmap favicon) {
         android.content.pm.ShortcutManager shortcutManager =
                 (android.content.pm.ShortcutManager) getSystemService(Context.SHORTCUT_SERVICE);
         
