@@ -1,6 +1,6 @@
-# Android Simple Browser
+# SCE API
 
-A simplified Android browser application that launches directly to api.oraclestar.cn with WebView implementation. The app features enhanced support for CAPTCHA verification and passkey authentication, running in landscape mode.
+SCE API（OracleStar Cloud Engine API）是一个专门为 api.oraclestar.cn 设计的 Android 浏览器应用。应用基于 WebView 实现，具有增强的 CAPTCHA 验证和密钥身份验证支持，并以横屏模式运行。
 
 ## Features
 
@@ -65,6 +65,42 @@ The app automatically grants WebView permission requests for:
 - Camera
 - Microphone
 - Other resources required for WebAuthn
+
+## Release 自动发布
+
+本项目支持自动版本管理和发布：
+
+### 创建新版本
+1. 在 `app/build.gradle` 中更新版本信息：
+   ```gradle
+   versionCode 2
+   versionName "1.0.1"
+   ```
+2. 提交更改：
+   ```bash
+   git add app/build.gradle
+   git commit -m "chore: bump version to 1.0.1"
+   git push
+   ```
+3. 创建并推送 tag：
+   ```bash
+   git tag v1.0.1
+   git push origin v1.0.1
+   ```
+
+### 自动化流程
+推送 tag 后，GitHub Actions 将自动：
+- 从 tag 提取版本号并应用到构建
+- 构建 Debug 和 Release APK
+- 创建 GitHub Release
+- 上传编译好的 APK 到 Release 页面
+
+### 版本号规范
+- 遵循语义化版本 (Semantic Versioning)
+- 格式：`v主版本.次版本.修订号`（例如：v1.0.0）
+- Tag 必须以 `v` 开头
+- versionCode 必须单调递增
+- 建议 versionCode 使用公式：`主版本*10000 + 次版本*100 + 修订号`（例如 1.0.1 -> 10001）
 
 ## Building
 

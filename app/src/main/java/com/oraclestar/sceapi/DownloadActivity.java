@@ -1,4 +1,4 @@
-package com.example.simplebrowser;
+package com.oraclestar.sceapi;
 
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;

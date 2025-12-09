@@ -3,14 +3,14 @@ plugins {
 }
 
 android {
-    namespace 'com.example.simplebrowser'
+    namespace 'com.oraclestar.sceapi'
     compileSdkVersion 35
     defaultConfig {
-        applicationId "com.example.simplebrowser"
+        applicationId "com.oraclestar.sceapi"
         minSdkVersion 24
         targetSdkVersion 34
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
     }
     buildTypes {
         release {
