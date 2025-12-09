@@ -78,15 +78,8 @@ public class WebViewActivity extends AppCompatActivity {
         
         webView = new WebView(this);
         
-        String url = getIntent().getStringExtra("url");
-        
-        // 如果从Intent data URI中获取URL
-        if (getIntent().getData() != null) {
-            android.net.Uri data = getIntent().getData();
-            String uriString = data.toString();
-            // 移除可能的fragment标记
-            url = uriString.split("#")[0];
-        }
+        // 固定URL为 api.oraclestar.cn
+        String url = "https://api.oraclestar.cn";
         
         // 强制启用桌面版模式 - 使用Windows Chrome User-Agent以获得更好的兼容性
         String desktopUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -300,7 +293,7 @@ public class WebViewActivity extends AppCompatActivity {
         // 恢复保存的状态（如果有）
         if (savedInstanceState != null) {
             webView.restoreState(savedInstanceState);
-        } else if (url != null && !url.isEmpty()) {
+        } else {
             webView.loadUrl(url);
         }
         
