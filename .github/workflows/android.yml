@@ -87,34 +87,48 @@ jobs:
       - name: 配置Release签名
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          # 从GitHub Secrets解码keystore文件
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+          # 验证所有必需的签名凭据是否存在
+          if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ] || \
+             [ -z "${{ secrets.KEYSTORE_PASSWORD }}" ] || \
+             [ -z "${{ secrets.KEY_ALIAS }}" ] || \
+             [ -z "${{ secrets.KEY_PASSWORD }}" ]; then
+            echo "Error: Missing required signing secrets"
+            echo "Please configure: KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD"
+            exit 1
+          fi
+          
+          # 创建临时目录用于存放签名文件
+          mkdir -p /tmp/signing
+          chmod 700 /tmp/signing
+          
+          # 从GitHub Secrets解码keystore文件到临时目录
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > /tmp/signing/release.keystore
+          chmod 600 /tmp/signing/release.keystore
           
           # 验证keystore文件是否成功创建
-          if [ ! -f release.keystore ] || [ ! -s release.keystore ]; then
+          if [ ! -f /tmp/signing/release.keystore ] || [ ! -s /tmp/signing/release.keystore ]; then
             echo "Error: Failed to create keystore file or file is empty"
             exit 1
           fi
           
-          echo "Keystore file created successfully"
-          
-          # 设置环境变量用于签名
-          echo "KEYSTORE_FILE=release.keystore" >> $GITHUB_ENV
-          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
-          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
-          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+          echo "Keystore file created successfully in secure temporary directory"
 
       - name: Build Release APK
         if: startsWith(github.ref, 'refs/tags/')
         run: ./gradlew assembleRelease --no-daemon
         working-directory: ./
+        env:
+          KEYSTORE_FILE: /tmp/signing/release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
       - name: 清理签名密钥文件
-        if: startsWith(github.ref, 'refs/tags/')
+        if: always() && startsWith(github.ref, 'refs/tags/')
         run: |
-          # 删除临时的keystore文件以防止泄露
-          rm -f release.keystore
-          echo "Keystore file cleaned up"
+          # 删除临时的keystore文件和目录以防止泄露
+          rm -rf /tmp/signing
+          echo "Keystore file and temporary directory cleaned up"
 
       - name: 重命名APK文件
         run: |

@@ -32,9 +32,12 @@ android {
                 def keyAlias = System.getenv("KEY_ALIAS")
                 def keyPassword = System.getenv("KEY_PASSWORD")
                 
+                // 检查签名配置是否完整
+                def hasCompleteSigningConfig = [keystoreFile, keystorePassword, keyAlias, keyPassword]
+                    .every { it?.trim() }
+                
                 // 只有当所有环境变量都存在且非空时才配置签名
-                if (keystoreFile?.trim() && keystorePassword?.trim() && 
-                    keyAlias?.trim() && keyPassword?.trim()) {
+                if (hasCompleteSigningConfig) {
                     storeFile file(keystoreFile)
                     storePassword keystorePassword
                     keyAlias keyAlias
