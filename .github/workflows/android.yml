@@ -83,10 +83,28 @@ jobs:
         run: ./gradlew assembleDebug --no-daemon
         working-directory: ./
 
+      # 配置签名（仅在发布时）
+      - name: 配置Release签名
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          # 从GitHub Secrets解码keystore文件
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+          
+          # 设置环境变量用于签名
+          echo "KEYSTORE_FILE=release.keystore" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+
       - name: Build Release APK
         if: startsWith(github.ref, 'refs/tags/')
         run: ./gradlew assembleRelease --no-daemon
         working-directory: ./
+        env:
+          KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
+          KEYSTORE_PASSWORD: ${{ env.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ env.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ env.KEY_PASSWORD }}
 
       - name: 重命名APK文件
         run: |
@@ -94,7 +112,11 @@ jobs:
           if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
             cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/SCE-API-${VERSION}-debug.apk
           fi
-          if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+          # Release APK现在是已签名的
+          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
+            cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/SCE-API-${VERSION}-release.apk
+          elif [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            # 如果签名失败，仍然复制未签名版本
             cp app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/SCE-API-${VERSION}-release.apk
           fi
 
@@ -127,7 +149,7 @@ jobs:
             
             ### 下载说明
             - **SCE-API-${{ steps.version.outputs.version }}-debug.apk**: 调试版本，包含调试信息
-            - **SCE-API-${{ steps.version.outputs.version }}-release.apk**: 发布版本（未签名）
+            - **SCE-API-${{ steps.version.outputs.version }}-release.apk**: 发布版本（已签名）
             
             ### 安装要求
             - Android 7.0 (API 24) 或更高版本
