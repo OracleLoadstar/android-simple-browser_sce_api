@@ -26,5 +26,6 @@ android {
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
+    // FIDO2 dependency for WebView WebAuthn/Passkey support
     implementation 'com.google.android.gms:play-services-fido:20.1.0'
 }
