@@ -26,27 +26,21 @@ android {
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
             } else {
-                // CI环境使用环境变量
+                // CI环境使用环境变量（如果未设置，签名配置将为null）
                 def keystoreFile = System.getenv("KEYSTORE_FILE")
                 def keystorePassword = System.getenv("KEYSTORE_PASSWORD")
                 def keyAlias = System.getenv("KEY_ALIAS")
                 def keyPassword = System.getenv("KEY_PASSWORD")
                 
-                // 验证必需的签名凭据是否存在且非空
+                // 只有当所有环境变量都存在且非空时才配置签名
                 if (keystoreFile?.trim() && keystorePassword?.trim() && 
                     keyAlias?.trim() && keyPassword?.trim()) {
                     storeFile file(keystoreFile)
                     storePassword keystorePassword
                     keyAlias keyAlias
                     keyPassword keyPassword
-                } else {
-                    // 如果凭据不完整，抛出明确错误
-                    throw new GradleException(
-                        "Release signing configuration is incomplete. " +
-                        "Please ensure all signing environment variables are set: " +
-                        "KEYSTORE_FILE, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD"
-                    )
                 }
+                // 如果环境变量未设置，签名配置保持为空（允许构建debug）
             }
         }
     }
@@ -55,7 +49,10 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            // 只有当签名配置完整时才应用
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     compileOptions {
