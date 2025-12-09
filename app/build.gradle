@@ -26,20 +26,5 @@ android {
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'androidx.browser:browser:1.7.0'
-    implementation 'org.mozilla.geckoview:geckoview:143.0.20250929153833'
-    // Optional: If you plan to integrate platform FIDO2 / WebAuthn (Passkeys) via
-    // Google Play Services, add the FIDO dependency here. The line below adds a
-    // recent stable version — CI must have Google Play services available.
     implementation 'com.google.android.gms:play-services-fido:20.1.0'
-    // Notes:
-    //  - Choose a specific stable VERSION compatible with your compileSdk and Gradle plugin.
-    //  - Adding this dependency requires the Android SDK + Google Play services available in CI/local.
-    //  - Alternatively, some projects use platform WebAuthn or Gecko's internal WebAuthn bridge; prefer
-    //    the approach that matches your Geckoview version and target devices.
-    // Notes:
-    //  - Choose a specific stable VERSION compatible with your compileSdk and Gradle plugin.
-    //  - Adding this dependency requires the Android SDK + Google Play services available in CI/local.
-    //  - Alternatively, some projects use platform WebAuthn or Gecko's internal WebAuthn bridge; prefer
-    //    the approach that matches your Geckoview version and target devices.
 }

@@ -67,46 +67,18 @@ public class MainActivity extends AppCompatActivity {
         
         // WebView选项
         RadioButton webViewOption = new RadioButton(this);
-        webViewOption.setText("内置浏览器 (Chromium)");
+        webViewOption.setText("内置浏览器 (WebView)");
         webViewOption.setId(2);
         webViewOption.setChecked(true);  // 设为默认选项
         browserModeGroup.addView(webViewOption);
         
         // WebView说明
         TextView webViewDesc = new TextView(this);
-        webViewDesc.setText("✓ 完全全屏\n✓ Chromium内核\n⚠ WebAuthn受限");
+        webViewDesc.setText("✓ 完全全屏\n✓ Chromium内核\n✓ 桌面模式支持");
         webViewDesc.setTextSize(12);
         webViewDesc.setPadding(32, 4, 0, 8);
-        webViewDesc.setTextColor(0xFF2196F3);
+        webViewDesc.setTextColor(0xFF4CAF50);
         browserModeGroup.addView(webViewDesc);
-        
-        // GeckoView选项（新增 - 推荐）
-        RadioButton geckoViewOption = new RadioButton(this);
-        geckoViewOption.setText("GeckoView (推荐)");
-        geckoViewOption.setId(3);
-        browserModeGroup.addView(geckoViewOption);
-        
-        // GeckoView说明
-        TextView geckoViewDesc = new TextView(this);
-        geckoViewDesc.setText("✓ 完全全屏\n✓ Firefox引擎\n✓ 完整WebAuthn支持\n✓ 现代Web标准");
-        geckoViewDesc.setTextSize(12);
-        geckoViewDesc.setPadding(32, 4, 0, 8);
-        geckoViewDesc.setTextColor(0xFF4CAF50);  // 绿色表示推荐
-        browserModeGroup.addView(geckoViewDesc);
-        
-        // Chrome Custom Tabs选项
-        RadioButton chromeTabsOption = new RadioButton(this);
-        chromeTabsOption.setText("Chrome Custom Tabs");
-        chromeTabsOption.setId(1);
-        browserModeGroup.addView(chromeTabsOption);
-        
-        // 说明文字
-        TextView chromeTabsDesc = new TextView(this);
-        chromeTabsDesc.setText("✓ 完美Cloudflare支持\n⚠ 非全屏");
-        chromeTabsDesc.setTextSize(12);
-        chromeTabsDesc.setPadding(32, 4, 0, 8);
-        chromeTabsDesc.setTextColor(0xFF666666);
-        browserModeGroup.addView(chromeTabsDesc);
         
         layout.addView(browserModeGroup);
 
@@ -234,43 +206,18 @@ public class MainActivity extends AppCompatActivity {
         android.content.pm.ShortcutManager shortcutManager =
                 (android.content.pm.ShortcutManager) getSystemService(Context.SHORTCUT_SERVICE);
         
-        // 根据选择的模式创建Intent
-        Intent intent;
-        String modeLabel;
-        
-        switch (browserMode) {
-            case 1: // Chrome Custom Tabs
-                intent = new Intent(this, ChromeTabActivity.class)
-                        .setAction(Intent.ACTION_VIEW)
-                        .setData(android.net.Uri.parse(url))
-                        .putExtra("url", url);
-                modeLabel = " (Chrome)";
-                break;
-            
-            case 3: // GeckoView
-                intent = new Intent(this, GeckoViewActivity.class)
-                        .setAction(Intent.ACTION_VIEW)
-                        .setData(android.net.Uri.parse(url))
-                        .putExtra("url", url);
-                modeLabel = " (GeckoView)";
-                break;
-            
-            case 2: // WebView
-            default:
-                String uriString = url + "#desktopMode=true";
-                intent = new Intent(this, WebViewActivity.class)
-                        .setAction(Intent.ACTION_VIEW)
-                        .setData(android.net.Uri.parse(uriString))
-                        .putExtra("url", url)
-                        .putExtra("desktopMode", true);
-                modeLabel = " (WebView)";
-                break;
-        }
+        // 创建WebView Intent
+        String uriString = url + "#desktopMode=true";
+        Intent intent = new Intent(this, WebViewActivity.class)
+                .setAction(Intent.ACTION_VIEW)
+                .setData(android.net.Uri.parse(uriString))
+                .putExtra("url", url)
+                .putExtra("desktopMode", true);
         
         android.content.pm.ShortcutInfo.Builder builder = 
                 new android.content.pm.ShortcutInfo.Builder(this, url + "_" + System.currentTimeMillis())
                 .setShortLabel("网页快捷方式")
-                .setLongLabel(url + modeLabel)
+                .setLongLabel(url + " (WebView)")
                 .setIntent(intent);
         
         // 如果成功获取了favicon，使用它作为图标
@@ -285,20 +232,7 @@ public class MainActivity extends AppCompatActivity {
         android.content.pm.ShortcutInfo shortcut = builder.build();
         shortcutManager.requestPinShortcut(shortcut, null);
         
-        String modeName;
-        switch (browserMode) {
-            case 1:
-                modeName = "Chrome Custom Tabs";
-                break;
-            case 3:
-                modeName = "GeckoView";
-                break;
-            case 2:
-            default:
-                modeName = "WebView";
-                break;
-        }
-        Toast.makeText(this, "快捷方式已创建 (" + modeName + ")", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "快捷方式已创建 (WebView)", Toast.LENGTH_LONG).show();
     }
     
     @Override
