@@ -21,10 +21,8 @@ git add .
 git commit -m "Release $VERSION"
 
 # 创建标签
-git tag $VERSION
+git tag "$VERSION"
 
 # 推送到远程仓库
-git push origin main
-git push origin $VERSION
-
+git push --tags
 echo "已成功创建并推送标签 $VERSION"%
