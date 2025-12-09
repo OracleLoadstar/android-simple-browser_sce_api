@@ -21,10 +21,10 @@ android {
                 def keystoreProperties = new Properties()
                 keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
                 
-                storeFile file(keystoreProperties['storeFile'])
-                storePassword keystoreProperties['storePassword']
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
+                storeFile = file(keystoreProperties['storeFile'])
+                storePassword = keystoreProperties['storePassword']
+                keyAlias = keystoreProperties['keyAlias']
+                keyPassword = keystoreProperties['keyPassword']
             } else {
                 // CI环境使用环境变量（如果未设置，签名配置将为null）
                 def keystoreFile = System.getenv("KEYSTORE_FILE")
@@ -38,10 +38,10 @@ android {
                 
                 // 只有当所有环境变量都存在且非空时才配置签名
                 if (hasCompleteSigningConfig) {
-                    storeFile file(keystoreFile)
-                    storePassword keystorePassword
-                    keyAlias keyAlias
-                    keyPassword keyPassword
+                    storeFile = file(keystoreFile)
+                    storePassword = keystorePassword
+                    keyAlias = keyAlias
+                    keyPassword = keyPassword
                 }
                 // 如果环境变量未设置，签名配置保持为空（允许构建debug）
             }
