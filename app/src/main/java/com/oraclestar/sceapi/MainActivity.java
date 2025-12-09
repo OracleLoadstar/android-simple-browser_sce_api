@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
         
         // 标题
         TextView titleView = new TextView(this);
-        titleView.setText("SimpleBrowser - 网页快捷方式生成器");
+        titleView.setText("SCE API - 网页快捷方式生成器");
         titleView.setTextSize(18);
         titleView.setPadding(0, 0, 0, 16);
         layout.addView(titleView);
