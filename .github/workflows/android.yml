@@ -53,9 +53,18 @@ jobs:
         run: |
           VERSION=${{ steps.version.outputs.version }}
           VERSION_CODE=$(grep "versionCode" app/build.gradle | awk '{print $2}')
+          
           # 从版本号计算 versionCode (例如 1.0.0 -> 10000, 1.2.3 -> 10203)
+          # 支持标准语义化版本 major.minor.patch
           IFS='.' read -ra VER <<< "$VERSION"
-          CALC_VERSION_CODE=$((${VER[0]} * 10000 + ${VER[1]} * 100 + ${VER[2]}))
+          MAJOR=${VER[0]:-0}
+          MINOR=${VER[1]:-0}
+          PATCH=${VER[2]:-0}
+          
+          # 移除可能的预发布标识符 (例如 1.0.0-beta -> 1.0.0)
+          PATCH=$(echo $PATCH | cut -d'-' -f1 | cut -d'+' -f1)
+          
+          CALC_VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
           
           # 使用计算出的 versionCode（确保单调递增）
           if [ $CALC_VERSION_CODE -gt $VERSION_CODE ]; then
