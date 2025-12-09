@@ -1,4 +1,4 @@
-package com.example.simplebrowser;
+package com.oraclestar.sceapi;
 
 import android.content.Context;
 import android.content.Intent;
