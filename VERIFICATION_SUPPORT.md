@@ -116,7 +116,7 @@ onPermissionRequest() -> request.grant(request.getResources())
 - 确认设备支持生物识别
 
 ### 权限被拒绝
-- 进入系统设置 > 应用 > SimpleBrowser > 权限
+- 进入系统设置 > 应用 > SCE API > 权限
 - 手动授予所需的权限
 
 ## 8. 安全注意事项
