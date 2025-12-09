@@ -100,11 +100,13 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: ./gradlew assembleRelease --no-daemon
         working-directory: ./
-        env:
-          KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
-          KEYSTORE_PASSWORD: ${{ env.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ env.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ env.KEY_PASSWORD }}
+
+      - name: 清理签名密钥文件
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          # 删除临时的keystore文件以防止泄露
+          rm -f release.keystore
+          echo "Keystore file cleaned up"
 
       - name: 重命名APK文件
         run: |
