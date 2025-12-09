@@ -32,19 +32,20 @@ android {
                 def keyAlias = System.getenv("KEY_ALIAS")
                 def keyPassword = System.getenv("KEY_PASSWORD")
                 
-                // 验证必需的签名凭据是否存在
-                if (keystoreFile && keystorePassword && keyAlias && keyPassword) {
+                // 验证必需的签名凭据是否存在且非空
+                if (keystoreFile?.trim() && keystorePassword?.trim() && 
+                    keyAlias?.trim() && keyPassword?.trim()) {
                     storeFile file(keystoreFile)
                     storePassword keystorePassword
                     keyAlias keyAlias
                     keyPassword keyPassword
                 } else {
-                    // 如果凭据不完整，使用占位符（构建将失败并给出明确错误）
-                    println "WARNING: Signing credentials not found. Release build will not be signed."
-                    storeFile file("placeholder.keystore")
-                    storePassword "placeholder"
-                    keyAlias "placeholder"
-                    keyPassword "placeholder"
+                    // 如果凭据不完整，抛出明确错误
+                    throw new GradleException(
+                        "Release signing configuration is incomplete. " +
+                        "Please ensure all signing environment variables are set: " +
+                        "KEYSTORE_FILE, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD"
+                    )
                 }
             }
         }

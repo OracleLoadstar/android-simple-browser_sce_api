@@ -90,6 +90,14 @@ jobs:
           # 从GitHub Secrets解码keystore文件
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
           
+          # 验证keystore文件是否成功创建
+          if [ ! -f release.keystore ] || [ ! -s release.keystore ]; then
+            echo "Error: Failed to create keystore file or file is empty"
+            exit 1
+          fi
+          
+          echo "Keystore file created successfully"
+          
           # 设置环境变量用于签名
           echo "KEYSTORE_FILE=release.keystore" >> $GITHUB_ENV
           echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV

@@ -50,7 +50,7 @@ base64 release.keystore | tr -d '\n' > keystore.base64.txt
 **Windows PowerShell:**
 
 ```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("release.keystore")) | Out-File keystore.base64.txt
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("release.keystore")) | Out-File -Encoding ASCII keystore.base64.txt
 ```
 
 ### 2.2 在 GitHub 中添加 Secrets

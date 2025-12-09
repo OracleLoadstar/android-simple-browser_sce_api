@@ -131,7 +131,7 @@ keytool -genkey -v -keystore release.keystore -alias release \
 base64 release.keystore | tr -d '\n' > keystore.base64.txt
 
 # Windows (PowerShell)
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("release.keystore")) | Out-File keystore.base64.txt
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("release.keystore")) | Out-File -Encoding ASCII keystore.base64.txt
 ```
 
 然后将 `keystore.base64.txt` 的内容复制到 GitHub Secrets 的 `KEYSTORE_BASE64` 中。
